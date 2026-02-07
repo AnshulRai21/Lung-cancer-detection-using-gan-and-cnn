@@ -1,0 +1,237 @@
+/* ===============================
+   GLOBAL RESET & BASE
+================================ */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Inter", "Segoe UI", Arial, sans-serif;
+    background: radial-gradient(circle at top, #eef4f9, #f7f9fc);
+    color: #1f2933;
+}
+
+/* ===============================
+   LAYOUT
+================================ */
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 40px 30px 80px;
+}
+
+/* ===============================
+   HEADER (HERO STYLE)
+================================ */
+header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+header h1 {
+    font-size: 42px;
+    font-weight: 700;
+    color: #0b3c5d;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    font-size: 16px;
+    color: #4b5563;
+    max-width: 600px;
+    margin: auto;
+}
+
+/* ===============================
+   UPLOAD BAR (GLASS EFFECT)
+================================ */
+.upload-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 50px;
+}
+
+.upload-section form {
+    display: flex;
+    gap: 20px;
+    padding: 25px 35px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+.upload-section input[type="file"] {
+    font-size: 14px;
+}
+
+.upload-section button {
+    padding: 12px 26px;
+    background: linear-gradient(135deg, #0b3c5d, #1e6091);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-section button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(30, 96, 145, 0.35);
+}
+
+/* ===============================
+   SECTION TITLES
+================================ */
+.images-section h2,
+.result-section h2 {
+    font-size: 24px;
+    margin-bottom: 25px;
+    color: #0b3c5d;
+}
+
+/* ===============================
+   IMAGE GRID
+================================ */
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 30px;
+}
+
+/* ===============================
+   IMAGE CARD
+================================ */
+.image-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 18px;
+    text-align: center;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.image-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+}
+
+.image-card h3 {
+    font-size: 17px;
+    margin-bottom: 12px;
+    color: #1f2933;
+}
+
+.image-card img {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+/* ===============================
+   GAN FOCUS CARD
+================================ */
+.highlight {
+    border: 2px solid #1e6091;
+    box-shadow: 0 0 0 4px rgba(30, 96, 145, 0.12);
+}
+
+/* ===============================
+   RESULT CARD
+================================ */
+.result-section {
+    margin-top: 70px;
+}
+
+.result-card {
+    max-width: 460px;
+    padding: 35px;
+    border-radius: 22px;
+    text-align: center;
+    box-shadow: 0 25px 55px rgba(0, 0, 0, 0.15);
+    font-size: 20px;
+}
+
+.result-card.safe {
+    background: linear-gradient(135deg, #e6f4ea, #ffffff);
+    color: #2e7d32;
+}
+
+.result-card.danger {
+    background: linear-gradient(135deg, #fdecea, #ffffff);
+    color: #b00020;
+}
+
+.label {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+/* ===============================
+   CONFIDENCE BAR
+================================ */
+.progress-container {
+    width: 100%;
+    height: 18px;
+    background: #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #0b3c5d, #3fa9f5);
+    transition: width 1.5s ease;
+}
+
+.result-card.danger .progress-bar {
+    background: linear-gradient(90deg, #b00020, #ff6b6b);
+}
+
+/* ===============================
+   INFO & DISCLAIMER
+================================ */
+.info-box {
+    margin-top: 20px;
+    background: #f1f5f9;
+    padding: 18px;
+    border-radius: 14px;
+    font-size: 14px;
+    color: #374151;
+}
+
+.disclaimer {
+    margin-top: 15px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* ===============================
+   LOADER
+================================ */
+.loader {
+    text-align: center;
+    margin: 30px 0;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 6px solid #e5e7eb;
+    border-top: 6px solid #1e6091;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: auto;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none;
+}

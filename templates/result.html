@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LungVision – Analysis Result</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #eef1ff, #f7f9ff);
+            padding: 40px;
+            color: #222;
+        }
+
+        .header {
+            max-width: 1100px;
+            margin: 0 auto 30px;
+        }
+
+        .header h2 {
+            font-size: 32px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            opacity: 0.7;
+        }
+
+        .grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 16px;
+            border-radius: 18px;
+            box-shadow: 0 18px 45px rgba(0,0,0,0.1);
+            text-align: center;
+            animation: fadeUp 0.6s ease forwards;
+        }
+
+        .card p {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .card img {
+            width: 100%;
+            border-radius: 12px;
+        }
+
+        .result-panel {
+            max-width: 500px;
+            margin: 45px auto 0;
+            background: white;
+            padding: 30px;
+            border-radius: 22px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+            text-align: center;
+            animation: fadeUp 0.8s ease forwards;
+        }
+
+        .status {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .status.safe {
+            color: #2e9f6e;
+        }
+
+        .status.danger {
+            color: #d33f49;
+        }
+
+        .confidence-label {
+            margin-bottom: 10px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 12px;
+            background: #e5e7ff;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #5f6ddc, #7a5fdc);
+            border-radius: 20px;
+            transition: width 1.2s ease;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(25px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .footer-note {
+            max-width: 800px;
+            margin: 35px auto 0;
+            text-align: center;
+            font-size: 13px;
+            opacity: 0.6;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 12px 32px;
+            border-radius: 30px;
+            background: #5f6ddc;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>Analysis Overview</h2>
+    <p>Visual outputs generated from the uploaded lung CT image</p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <p>Original</p>
+        <img src="{{ results.images.original }}">
+    </div>
+
+    <div class="card">
+        <p>GAN Enhanced</p>
+        <img src="{{ results.images.enhanced }}">
+    </div>
+
+    <div class="card">
+        <p>Contrast Enhanced</p>
+        <img src="{{ results.images.contrast }}">
+    </div>
+
+    <div class="card">
+        <p>Zoomed View</p>
+        <img src="{{ results.images.zoomed }}">
+    </div>
+
+    <div class="card">
+        <p>Binarized View</p>
+        <img src="{{ results.images.binary }}">
+    </div>
+</div>
+
+<div class="result-panel">
+    <div class="status {{ 'danger' if results.label == 'Cancer' else 'safe' }}">
+        {{ "High Risk Detected" if results.label == "Cancer" else "No High Risk Detected" }}
+    </div>
+
+    <div class="confidence-label">
+        Prediction Confidence: {{ results.confidence }}%
+    </div>
+
+    <div class="progress-container">
+        <div class="progress-bar" data-confidence="{{ results.confidence }}"></div>
+    </div>
+
+    <a href="/" class="back-btn">Analyze Another Image</a>
+</div>
+
+<div class="footer-note">
+    This system assists medical professionals and does not replace clinical diagnosis.
+</div>
+
+<script>
+    window.onload = function () {
+        const bar = document.querySelector(".progress-bar");
+        const value = bar.getAttribute("data-confidence");
+        setTimeout(() => {
+            bar.style.width = value + "%";
+        }, 300);
+    };
+</script>
+
+</body>
+</html>
