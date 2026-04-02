@@ -13,12 +13,13 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            padding: 16px;
         }
 
         .card {
             background: #ffffff;
-            width: 90%;
-            max-width: 500px;
+            width: 100%;
+            max-width: 560px;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
             padding: 24px;
@@ -54,15 +55,39 @@
         button:hover {
             background: #19326f;
         }
+
+        .preview {
+            margin-top: 24px;
+            text-align: left;
+        }
+
+        .preview h2 {
+            font-size: 1rem;
+            color: #2d2d2d;
+            margin-bottom: 10px;
+        }
+
+        .preview img {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Lung CT Image Enhancement and Cancer Detection</h1>
-        <form method="POST" action="#" enctype="multipart/form-data">
-            <input type="file" name="image" accept="image/*" required>
+        <form method="POST" action="/" enctype="multipart/form-data">
+            <input type="file" name="image" accept=".png,.jpg,.jpeg" required>
             <button type="submit">Submit</button>
         </form>
+
+        {% if image_url %}
+        <div class="preview">
+            <h2>Uploaded Image Preview</h2>
+            <img src="/{{ image_url }}" alt="Uploaded CT scan preview">
+        </div>
+        {% endif %}
     </div>
 </body>
 </html>
