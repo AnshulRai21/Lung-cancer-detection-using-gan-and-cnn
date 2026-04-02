@@ -97,6 +97,22 @@
         </div>
         {% endif %}
 
+
+        {% if gan_meta %}
+        <div class="preview">
+            <h2>GAN Module Status</h2>
+            <p><strong>Mode:</strong> {{ gan_meta.mode }}</p>
+            <p><strong>Model path:</strong> {{ gan_meta.model_path }}</p>
+        </div>
+        {% endif %}
+
+        {% if enhanced_url %}
+        <div class="preview">
+            <h2>GAN Enhancement Output</h2>
+            <img src="/{{ enhanced_url }}" alt="GAN enhanced CT scan">
+        </div>
+        {% endif %}
+
         {% if error %}
         <div class="preview">
             <h2>Preprocessing Error</h2>
