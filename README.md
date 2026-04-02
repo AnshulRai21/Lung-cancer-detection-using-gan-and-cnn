@@ -1,19 +1,6 @@
-# Lung CT Image Enhancement using GAN and Lung Cancer Detection
+# Lung CT Image Enhancement and Cancer Detection (Step 1)
 
-Flask-based capstone demo application for:
-1. Lung CT image preprocessing
-2. GAN-style image enhancement (with placeholder fallback)
-3. Visualization outputs (contrast, zoomed lung region, binarized view)
-4. Lung cancer prediction (model metadata + dummy fallback classifier)
-
-> **Disclaimer:** This system assists medical professionals and does not replace diagnosis.
-
-## Features
-- Upload CT image from browser
-- End-to-end pipeline:
-  - Upload → Preprocess → GAN Enhance → Visualize → Predict → Result page
-- Model metadata loaded once at startup
-- Works in demo mode even when model runtimes are unavailable
+This is the initial setup for a Flask-based capstone project.
 
 ## Project Structure
 
@@ -22,32 +9,43 @@ Flask-based capstone demo application for:
 ├── app.py
 ├── requirements.txt
 ├── templates/
-│   ├── index.html
-│   └── result.html
+├── static/
+│   ├── css/
+│   ├── js/
+│   ├── uploads/
+│   └── outputs/
 ├── utils/
-│   ├── preprocessing.py
-│   ├── enhancement.py
-│   ├── visualization.py
-│   └── prediction.py
 ├── models/
-│   ├── gan_generator.pth
-│   └── cancer_classifier.pth
-└── static/
-    ├── uploads/
-    └── outputs/
+└── uploads/
 ```
 
-## Setup
+## Setup Instructions
 
-```bash
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python app.py
-```
+1. Create and activate a virtual environment:
+   - Linux/macOS:
+     ```bash
+     python -m venv .venv
+     source .venv/bin/activate
+     ```
+   - Windows (PowerShell):
+     ```powershell
+     python -m venv .venv
+     .venv\Scripts\Activate.ps1
+     ```
 
-Open: `http://127.0.0.1:5000/`
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## Notes for Viva / Demo
-- `utils/enhancement.py` and `utils/prediction.py` currently include fallback logic for smooth demos.
-- Replace placeholder logic with real GAN/CNN inference as needed.
+3. Run the Flask app:
+   ```bash
+   python app.py
+   ```
+
+4. Open in browser:
+   - http://127.0.0.1:5000/
+
+---
+
+> Disclaimer: This system assists medical professionals and does not replace diagnosis.
