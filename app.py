@@ -3,6 +3,8 @@ from flask import Flask, render_template
 from flask import Flask, render_template, request
 from werkzeug.utils import secure_filename
 
+from utils.preprocessing import preprocess_image
+
 app = Flask(__name__)
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
@@ -17,6 +19,8 @@ def allowed_file(filename: str) -> bool:
 @app.route('/', methods=['GET', 'POST'])
 def home():
     image_url = None
+    preprocess_meta = None
+    error = None
 
     if request.method == 'POST':
         file = request.files.get('image')
@@ -28,7 +32,22 @@ def home():
             file.save(save_path)
             image_url = save_path.replace('\\', '/')
 
-    return render_template('index.html', image_url=image_url)
+            try:
+                processed = preprocess_image(save_path)
+                preprocess_meta = {
+                    'shape': processed.shape,
+                    'min': float(processed.min()),
+                    'max': float(processed.max()),
+                }
+            except ValueError as exc:
+                error = str(exc)
+
+    return render_template(
+        'index.html',
+        image_url=image_url,
+        preprocess_meta=preprocess_meta,
+        error=error,
+    )
 
 
 if __name__ == '__main__':

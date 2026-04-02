@@ -88,6 +88,21 @@
             <img src="/{{ image_url }}" alt="Uploaded CT scan preview">
         </div>
         {% endif %}
+
+        {% if preprocess_meta %}
+        <div class="preview">
+            <h2>Preprocessing Output</h2>
+            <p><strong>Shape:</strong> {{ preprocess_meta.shape }}</p>
+            <p><strong>Range:</strong> {{ preprocess_meta.min }} to {{ preprocess_meta.max }}</p>
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="preview">
+            <h2>Preprocessing Error</h2>
+            <p>{{ error }}</p>
+        </div>
+        {% endif %}
     </div>
 </body>
 </html>
