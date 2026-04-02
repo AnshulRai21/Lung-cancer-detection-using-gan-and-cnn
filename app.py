@@ -4,109 +4,71 @@ import cv2
 from flask import Flask, render_template, request
 from werkzeug.utils import secure_filename
 
-from utils.classification import load_cnn_model, predict_cancer
 from utils.enhancement import enhance_image, load_gan_model
-# ---------------------------
-# Import utility modules
-# ---------------------------
 from utils.preprocessing import preprocess_image
-from utils.visualization import (apply_contrast_enhancement,
-                                 generate_binarized_image,
-                                 generate_zoomed_view, save_visual_outputs)
 
-# ---------------------------
-# Flask App Setup
-# ---------------------------
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "uploads"
-OUTPUT_FOLDER = "static/outputs"
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+OUTPUT_FOLDER = os.path.join('static', 'outputs')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+GAN_STATUS = load_gan_model(os.path.join('models', 'gan_generator.pth'))
 
 
-# ---------------------------
-# Load Models Once
-# ---------------------------
-print("🔄 Loading models...")
-load_gan_model("models/gan_generator.pth")
-load_cnn_model("models/cancer_classifier.pth")
-print("✅ Models loaded successfully")
+def allowed_file(filename: str) -> bool:
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# ---------------------------
-# Landing Page (GET)
-# ---------------------------
-@app.route("/", methods=["GET"])
-def landing():
-    return render_template("index.html")
+@app.route('/', methods=['GET', 'POST'])
+def home():
+    image_url = None
+    enhanced_url = None
+    preprocess_meta = None
+    gan_meta = GAN_STATUS
+    error = None
 
+    if request.method == 'POST':
+        file = request.files.get('image')
 
-# ---------------------------
-# Analyze Image (POST)
-# ---------------------------
-@app.route("/analyze", methods=["POST"])
-def analyze():
+        if file and file.filename and allowed_file(file.filename):
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
-    file = request.files.get("image")
+            filename = secure_filename(file.filename)
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(save_path)
+            image_url = save_path.replace('\\', '/')
 
-    if not file or file.filename == "":
-        return render_template("index.html")
+            try:
+                processed = preprocess_image(save_path)
+                preprocess_meta = {
+                    'shape': processed.shape,
+                    'min': float(processed.min()),
+                    'max': float(processed.max()),
+                }
 
-    if not allowed_file(file.filename):
-        return render_template("index.html")
+                enhanced = enhance_image(processed)
+                enhanced_name = f"enhanced_{filename.rsplit('.', 1)[0]}.png"
+                enhanced_path = os.path.join(app.config['OUTPUT_FOLDER'], enhanced_name)
+                cv2.imwrite(enhanced_path, enhanced)
+                enhanced_url = enhanced_path.replace('\\', '/')
+            except ValueError as exc:
+                error = str(exc)
 
-    # Save uploaded image
-    filename = secure_filename(file.filename)
-    upload_path = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(upload_path)
-
-    # Read original image
-    original = cv2.imread(upload_path, cv2.IMREAD_GRAYSCALE)
-    if original is None:
-        return render_template("index.html")
-
-    original = cv2.resize(original, (128, 128))
-
-    # ---------------------------
-    # AI PIPELINE
-    # ---------------------------
-    preprocessed = preprocess_image(upload_path)
-    enhanced = enhance_image(preprocessed)
-
-    contrast = apply_contrast_enhancement(enhanced)
-    zoomed = generate_zoomed_view(enhanced)
-    binary = generate_binarized_image(enhanced)
-
-    image_paths = save_visual_outputs(
-        original,
-        enhanced,
-        contrast,
-        zoomed,
-        binary,
-        OUTPUT_FOLDER
+    return render_template(
+        'index.html',
+        image_url=image_url,
+        enhanced_url=enhanced_url,
+        preprocess_meta=preprocess_meta,
+        gan_meta=gan_meta,
+        error=error,
     )
 
-    label, confidence = predict_cancer(enhanced)
 
-    results = {
-        "images": image_paths,
-        "label": label,
-        "confidence": confidence
-    }
-
-    return render_template("result.html", results=results)
-
-
-# ---------------------------
-# Run App
-# ---------------------------
-if __name__ == "__main__":
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+if __name__ == '__main__':
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
     app.run(debug=True)
