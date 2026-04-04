@@ -1,68 +1,177 @@
-# ==============================
-# STEP 1: Create GAN structure
-# ==============================
+from __future__ import annotations
 
-import os
-import shutil
+import argparse
 from pathlib import Path
 
-base_dir = "/content/Lung-cancer-detection-using-gan-and-cnn"
-data_dir = f"{base_dir}/uploads"
+import cv2
+import torch
+import numpy as np
+from torch.optim import Adam
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-input_dir = f"{data_dir}/input"
-target_dir = f"{data_dir}/target"
+from gan_pipeline.architectures import AttentionResUNetGenerator, PatchDiscriminator
+from gan_pipeline.dataset import LungCTPairDataset
+from gan_pipeline.losses import MultiObjectiveLoss
+from gan_pipeline.metrics import compute_psnr_ssim
 
-os.makedirs(input_dir, exist_ok=True)
-os.makedirs(target_dir, exist_ok=True)
-
-# ==============================
-# STEP 2: Collect images from dataset
-# ==============================
-
-source_dir = f"{base_dir}/uploads/Data/train"
-
-count = 0
-
-for root, dirs, files in os.walk(source_dir):
-    for file in files:
-        if file.endswith((".png", ".jpg", ".jpeg")):
-            src = os.path.join(root, file)
-            
-            # Copy to input
-            dst_input = os.path.join(input_dir, f"{count}.png")
-            shutil.copy(src, dst_input)
-
-            # Copy to target (same image for now)
-            dst_target = os.path.join(target_dir, f"{count}.png")
-            shutil.copy(src, dst_target)
-
-            count += 1
-
-print(f"Total images prepared: {count}")
 
 # ==============================
-# STEP 3: Verify structure
+# FIXED POSTPROCESS FUNCTION
 # ==============================
+def postprocess_enhancement(image_tensor):
+    batch = []
 
-print("Input samples:", len(os.listdir(input_dir)))
-print("Target samples:", len(os.listdir(target_dir)))
+    for img in image_tensor:  # process each image in batch
+        img_np = img.detach().cpu().numpy()
+
+        # Convert (C,H,W) → (H,W)
+        if img_np.shape[0] == 1:
+            img_np = img_np[0]
+        else:
+            img_np = np.mean(img_np, axis=0)
+
+        # Normalize to 0–255
+        img_np = ((img_np + 1.0) * 127.5).clip(0, 255).astype('uint8')
+
+        # CLAHE enhancement
+        clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+        enhanced = clahe.apply(img_np)
+
+        # Convert back to tensor
+        enhanced = enhanced.astype('float32') / 127.5 - 1.0
+        enhanced = torch.from_numpy(enhanced).unsqueeze(0)
+
+        batch.append(enhanced)
+
+    return torch.stack(batch)
+
 
 # ==============================
-# STEP 4: Install dependencies
+# SAVE VISUALS
 # ==============================
+def save_epoch_visuals(x, fake, out_dir, epoch):
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-!pip install -r /content/Lung-cancer-detection-using-gan-and-cnn/requirements.txt
+    x_np = ((x[0, 0].detach().cpu().numpy() + 1.0) * 127.5).clip(0, 255).astype('uint8')
+    f_np = ((fake[0, 0].detach().cpu().numpy() + 1.0) * 127.5).clip(0, 255).astype('uint8')
+
+    cv2.imwrite(str(out_dir / f'epoch_{epoch:03d}_input.png'), x_np)
+    cv2.imwrite(str(out_dir / f'epoch_{epoch:03d}_generated.png'), f_np)
+
 
 # ==============================
-# STEP 5: Run training
+# TRAIN FUNCTION
 # ==============================
+def train(args):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-%cd /content/Lung-cancer-detection-using-gan-and-cnn
+    ds = LungCTPairDataset(args.data_dir, image_size=args.image_size, augment=True)
+    dl = DataLoader(ds, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
-!python -m gan_pipeline.train \
---data-dir uploads \
---epochs 3 \
---batch-size 4 \
---image-size 128 \
---checkpoint-dir models \
---visual-dir static/outputs
+    net_g = AttentionResUNetGenerator().to(device)
+    net_d = PatchDiscriminator().to(device)
+
+    opt_g = Adam(net_g.parameters(), lr=args.lr, betas=(0.5, 0.999))
+    opt_d = Adam(net_d.parameters(), lr=args.lr, betas=(0.5, 0.999))
+
+    criterion = MultiObjectiveLoss(
+        lambda_l1=args.lambda_l1,
+        lambda_perceptual=args.lambda_perceptual
+    ).to(device)
+
+    for epoch in range(1, args.epochs + 1):
+        net_g.train()
+        net_d.train()
+
+        running_g = 0.0
+        running_d = 0.0
+
+        prog = tqdm(dl, desc=f"Epoch {epoch}/{args.epochs}")
+
+        for x, y in prog:
+            x = x.to(device)
+            y = y.to(device)
+
+            # -------------------------
+            # Train Discriminator
+            # -------------------------
+            with torch.no_grad():
+                fake_for_d = net_g(x)
+
+            d_real = net_d(x, y)
+            d_fake = net_d(x, fake_for_d)
+
+            loss_d_real = criterion.adversarial_loss(d_real, True, smooth=0.1)
+            loss_d_fake = criterion.adversarial_loss(d_fake, False)
+            loss_d = 0.5 * (loss_d_real + loss_d_fake)
+
+            opt_d.zero_grad()
+            loss_d.backward()
+            opt_d.step()
+
+            # -------------------------
+            # Train Generator
+            # -------------------------
+            fake = net_g(x)
+            fake = postprocess_enhancement(fake).to(device)
+
+            d_fake_for_g = net_d(x, fake)
+            g_losses = criterion.generator_loss(d_fake_for_g, fake, y)
+
+            opt_g.zero_grad()
+            g_losses["total"].backward()
+            opt_g.step()
+
+            running_d += loss_d.item()
+            running_g += g_losses["total"].item()
+
+            prog.set_postfix(
+                D_loss=loss_d.item(),
+                G_loss=g_losses["total"].item()
+            )
+
+        # Save visuals
+        save_epoch_visuals(x, fake, args.visual_dir, epoch)
+
+        # Metrics
+        psnr, ssim = compute_psnr_ssim(
+            fake[0, 0].detach().cpu().numpy(),
+            y[0, 0].detach().cpu().numpy()
+        )
+
+        print(f"Epoch {epoch}: G={running_g/len(dl):.4f} D={running_d/len(dl):.4f} PSNR={psnr:.2f} SSIM={ssim:.4f}")
+
+    # Save models
+    Path(args.checkpoint_dir).mkdir(parents=True, exist_ok=True)
+
+    torch.save(net_g.state_dict(), f"{args.checkpoint_dir}/gan_generator.pth")
+    torch.save(net_d.state_dict(), f"{args.checkpoint_dir}/gan_discriminator.pth")
+
+
+# ==============================
+# ARGUMENT PARSER
+# ==============================
+def build_parser():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--data-dir", type=str, required=True)
+    parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--image-size", type=int, default=128)
+    parser.add_argument("--lr", type=float, default=0.0002)
+    parser.add_argument("--lambda-l1", type=float, default=100.0)
+    parser.add_argument("--lambda-perceptual", type=float, default=10.0)
+    parser.add_argument("--visual-dir", type=str, default="static/outputs")
+    parser.add_argument("--checkpoint-dir", type=str, default="models")
+
+    return parser
+
+
+# ==============================
+# MAIN
+# ==============================
+if __name__ == "__main__":
+    args = build_parser().parse_args()
+    train(args)
