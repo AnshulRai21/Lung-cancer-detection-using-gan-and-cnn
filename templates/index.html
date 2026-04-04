@@ -2,150 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>LungVision</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lung CT Enhancement & Cancer Detection</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
-
-        body {
-            height: 100vh;
-            background: linear-gradient(135deg, #5f6ddc, #7a5fdc);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 900px;
-            padding: 40px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            font-size: 16px;
-            opacity: 0.9;
-            margin-bottom: 50px;
-        }
-
-        .card {
-            background: rgba(255,255,255,0.16);
-            backdrop-filter: blur(16px);
-            border-radius: 24px;
-            padding: 45px;
-            box-shadow: 0 35px 80px rgba(0,0,0,0.3);
-        }
-
-        .upload-box {
-            border: 2px dashed rgba(255,255,255,0.7);
-            border-radius: 18px;
-            padding: 26px;
-            cursor: pointer;
-            margin-bottom: 30px;
-            transition: background 0.3s ease;
-        }
-
-        .upload-box:hover {
-            background: rgba(255,255,255,0.12);
-        }
-
-        .file-name {
-            margin-top: 8px;
-            font-size: 14px;
-            opacity: 0.85;
-        }
-
-        button {
-            padding: 15px 44px;
-            border: none;
-            border-radius: 40px;
-            background: #ffffff;
-            color: #5f6ddc;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: box-shadow 0.3s ease;
-        }
-
-        button:hover {
-            box-shadow: 0 14px 35px rgba(0,0,0,0.35);
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        /* Loading Overlay */
-        .loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, #5f6ddc, #7a5fdc);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-        }
-
-        .loader-card {
-            background: rgba(255,255,255,0.2);
-            padding: 40px 50px;
-            border-radius: 22px;
-            text-align: center;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.35);
-        }
+        body { font-family: Arial, sans-serif; background: #f4f7fb; margin: 0; }
+        .container { max-width: 760px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+        h1 { color: #1f3c88; margin-top: 0; }
+        .sub { color: #4b5563; margin-bottom: 18px; }
+        input[type=file] { width: 100%; margin: 10px 0 12px; }
+        button { background:#1f3c88; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
+        .meta, .error { margin-top: 16px; padding: 12px; border-radius: 8px; }
+        .meta { background: #f8fafc; border: 1px solid #e2e8f0; }
+        .error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+        .disclaimer { margin-top: 22px; font-size: .92rem; color:#6b7280; }
     </style>
 </head>
 <body>
-
 <div class="container">
-    <h1>LungVision</h1>
-    <p class="subtitle">AI-powered lung CT image analysis</p>
+    <h1>Lung CT Image Enhancement and Cancer Detection</h1>
+    <p class="sub">Upload a CT image to run: Preprocess → GAN Enhancement → Visualization → Prediction.</p>
 
-    <div class="card">
-        <form method="POST" action="/analyze" enctype="multipart/form-data" onsubmit="showLoader()">
+    <form method="POST" action="/analyze" enctype="multipart/form-data">
+        <input type="file" name="image" accept=".png,.jpg,.jpeg" required>
+        <button type="submit">Analyze Image</button>
+    </form>
 
-            <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-                Select a lung CT image
-                <div class="file-name" id="fileName"></div>
-            </div>
-
-            <input
-                type="file"
-                id="fileInput"
-                name="image"
-                accept=".png,.jpg,.jpeg"
-                required
-                onchange="document.getElementById('fileName').innerText=this.files[0].name"
-            >
-
-            <button type="submit">Analyze Image →</button>
-        </form>
+    {% if gan_meta %}
+    <div class="meta">
+        <strong>GAN Mode:</strong> {{ gan_meta.mode }}<br>
+        <strong>GAN Model Path:</strong> {{ gan_meta.model_path }}
     </div>
-</div>
+    {% endif %}
 
-<!-- Loading Screen -->
-<div id="loader" class="loading-overlay">
-    <div class="loader-card">
-        <p>Analyzing image...</p>
+    {% if prediction_meta %}
+    <div class="meta">
+        <strong>Prediction Mode:</strong> {{ prediction_meta.mode }}<br>
+        <strong>Prediction Model Path:</strong> {{ prediction_meta.model_path }}
     </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <p class="disclaimer">This system assists medical professionals and does not replace diagnosis.</p>
 </div>
-
-<script>
-    function showLoader() {
-        document.getElementById("loader").style.display = "flex";
-    }
-</script>
-
 </body>
 </html>
