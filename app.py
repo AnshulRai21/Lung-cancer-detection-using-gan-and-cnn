@@ -65,9 +65,7 @@ def home():
                     key: f"/{path.replace(os.sep, '/')}"
                     for key, path in output_paths.items()
                 }
-                # Use the normalized original CT view for classification to stay
-                # aligned with typical classifier training inputs.
-                label, confidence = predict_cancer(original_u8)
+                label, confidence = predict_cancer(enhanced)
 
                 return render_template(
                     'result.html',
