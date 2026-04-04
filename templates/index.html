@@ -5,47 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lung CT Enhancement & Cancer Detection</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f7fb; margin: 0; }
-        .container { max-width: 760px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
-        h1 { color: #1f3c88; margin-top: 0; }
-        .sub { color: #4b5563; margin-bottom: 18px; }
-        input[type=file] { width: 100%; margin: 10px 0 12px; }
-        button { background:#1f3c88; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
-        .meta, .error { margin-top: 16px; padding: 12px; border-radius: 8px; }
-        .meta { background: #f8fafc; border: 1px solid #e2e8f0; }
-        .error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
-        .disclaimer { margin-top: 22px; font-size: .92rem; color:#6b7280; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 560px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            color: #1f3c88;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            margin: 12px 0;
+            padding: 8px;
+            border: 1px solid #d9e2f2;
+            border-radius: 8px;
+            background: #fbfdff;
+        }
+
+        button {
+            margin-top: 12px;
+            background: #1f3c88;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background: #19326f;
+        }
+
+        .preview {
+            margin-top: 24px;
+            text-align: left;
+        }
+
+        .preview h2 {
+            font-size: 1rem;
+            color: #2d2d2d;
+            margin-bottom: 10px;
+        }
+
+        .preview img {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Lung CT Image Enhancement and Cancer Detection</h1>
-    <p class="sub">Upload a CT image to run: Preprocess → GAN Enhancement → Visualization → Prediction.</p>
+    <div class="card">
+        <h1>Lung CT Image Enhancement and Cancer Detection</h1>
+        <form method="POST" action="/" enctype="multipart/form-data">
+            <input type="file" name="image" accept=".png,.jpg,.jpeg" required>
+            <button type="submit">Submit</button>
+        </form>
 
-    <form method="POST" action="/analyze" enctype="multipart/form-data">
-        <input type="file" name="image" accept=".png,.jpg,.jpeg" required>
-        <button type="submit">Analyze Image</button>
-    </form>
+        {% if image_url %}
+        <div class="preview">
+            <h2>Uploaded Image Preview</h2>
+            <img src="/{{ image_url }}" alt="Uploaded CT scan preview">
+        </div>
+        {% endif %}
 
-    {% if gan_meta %}
-    <div class="meta">
-        <strong>GAN Mode:</strong> {{ gan_meta.mode }}<br>
-        <strong>GAN Model Path:</strong> {{ gan_meta.model_path }}
+        {% if preprocess_meta %}
+        <div class="preview">
+            <h2>Preprocessing Output</h2>
+            <p><strong>Shape:</strong> {{ preprocess_meta.shape }}</p>
+            <p><strong>Range:</strong> {{ preprocess_meta.min }} to {{ preprocess_meta.max }}</p>
+        </div>
+        {% endif %}
+
+
+        {% if gan_meta %}
+        <div class="preview">
+            <h2>GAN Module Status</h2>
+            <p><strong>Mode:</strong> {{ gan_meta.mode }}</p>
+            <p><strong>Model path:</strong> {{ gan_meta.model_path }}</p>
+        </div>
+        {% endif %}
+
+        {% if enhanced_url %}
+        <div class="preview">
+            <h2>GAN Enhancement Output</h2>
+            <img src="/{{ enhanced_url }}" alt="GAN enhanced CT scan">
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="preview">
+            <h2>Preprocessing Error</h2>
+            <p>{{ error }}</p>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
-
-    {% if prediction_meta %}
-    <div class="meta">
-        <strong>Prediction Mode:</strong> {{ prediction_meta.mode }}<br>
-        <strong>Prediction Model Path:</strong> {{ prediction_meta.model_path }}
-    </div>
-    {% endif %}
-
-    {% if error %}
-    <div class="error">{{ error }}</div>
-    {% endif %}
-
-    <p class="disclaimer">This system assists medical professionals and does not replace diagnosis.</p>
-</div>
 </body>
 </html>
