@@ -1,73 +1,51 @@
-"""Dataset and augmentations for paired lung CT enhancement."""
-
-from __future__ import annotations
-
-from pathlib import Path
-
+import os
 import cv2
-import numpy as np
 import torch
 from torch.utils.data import Dataset
-
+import numpy as np
 
 class LungCTPairDataset(Dataset):
-    """
-    Paired dataset for cGAN training.
-
-    Expected layout:
-      root/
-        input/  (degraded/noisy images)
-        target/ (clean/enhanced images)
-
-    If target image is missing, target defaults to input for demo compatibility.
-    """
-
-    def __init__(self, root_dir: str, image_size: int = 128, augment: bool = True):
-        self.root = Path(root_dir)
-        self.input_dir = self.root / 'input'
-        self.target_dir = self.root / 'target'
+    def __init__(self, data_dir, image_size=256, augment=True):
+        self.data_dir = data_dir
         self.image_size = image_size
         self.augment = augment
-        self.files = sorted(p for p in self.input_dir.glob('*') if p.suffix.lower() in {'.png', '.jpg', '.jpeg'})
 
-    def __len__(self) -> int:
+        # 🔥 Load ALL images from folder + subfolders
+        self.files = []
+        for root, dirs, files in os.walk(self.data_dir):
+            for f in files:
+                if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff")):
+                    full_path = os.path.join(root, f)
+                    self.files.append(full_path)
+
+        print("Total images found:", len(self.files))
+
+    def __len__(self):
         return len(self.files)
 
-    def _read_gray(self, path: Path) -> np.ndarray:
-        image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
-        if image is None:
-            raise ValueError(f'Failed to read image: {path}')
-        return cv2.resize(image, (self.image_size, self.image_size), interpolation=cv2.INTER_AREA)
+    def _read_gray(self, path):
+        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
 
-    def _augment_pair(self, x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        if not self.augment:
-            return x, y
+        # Safety check (if image fails to load)
+        if img is None:
+            raise ValueError(f"Error loading image: {path}")
 
-        if np.random.rand() < 0.5:
-            x = cv2.flip(x, 1)
-            y = cv2.flip(y, 1)
+        img = cv2.resize(img, (self.image_size, self.image_size))
+        img = img / 255.0  # normalize (0–1)
+        img = np.expand_dims(img, axis=0)  # (1, H, W)
 
-        if np.random.rand() < 0.3:
-            angle = np.random.choice([-10, -5, 5, 10])
-            center = (self.image_size // 2, self.image_size // 2)
-            matrix = cv2.getRotationMatrix2D(center, float(angle), 1.0)
-            x = cv2.warpAffine(x, matrix, (self.image_size, self.image_size), flags=cv2.INTER_LINEAR)
-            y = cv2.warpAffine(y, matrix, (self.image_size, self.image_size), flags=cv2.INTER_LINEAR)
+        return img
 
-        return x, y
-
-    @staticmethod
-    def _to_tensor(image: np.ndarray) -> torch.Tensor:
-        # Normalize CT to [-1, 1]
-        image = image.astype(np.float32) / 127.5 - 1.0
-        return torch.from_numpy(image).unsqueeze(0)
-
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx):
         input_path = self.files[idx]
-        target_path = self.target_dir / input_path.name
+
+        # 🔥 Use SAME image as target (no target_dir needed)
+        target_path = input_path
 
         input_img = self._read_gray(input_path)
-        target_img = self._read_gray(target_path) if target_path.exists() else input_img.copy()
+        target_img = self._read_gray(target_path)
 
-        input_img, target_img = self._augment_pair(input_img, target_img)
-        return self._to_tensor(input_img), self._to_tensor(target_img)
+        input_img = torch.tensor(input_img, dtype=torch.float32)
+        target_img = torch.tensor(target_img, dtype=torch.float32)
+
+        return input_img, target_img
