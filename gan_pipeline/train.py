@@ -6,7 +6,6 @@ import argparse
 from pathlib import Path
 
 import cv2
-import numpy as np
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
@@ -20,19 +19,12 @@ from gan_pipeline.metrics import compute_psnr_ssim
 
 def postprocess_enhancement(image_tensor: torch.Tensor) -> torch.Tensor:
     """Apply CLAHE + normalization for visible quality boost."""
+    image = image_tensor.detach().cpu().squeeze().numpy()
+    image = ((image + 1.0) * 127.5).clip(0, 255).astype('uint8')
     clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
-    batch = image_tensor.detach().cpu().numpy()  # (B, 1, H, W)
-    enhanced_batch = []
-
-    for sample in batch:
-        image = ((sample[0] + 1.0) * 127.5).clip(0, 255).astype('uint8')
-        enhanced = clahe.apply(image)
-        enhanced = enhanced.astype('float32') / 127.5 - 1.0
-        enhanced_batch.append(enhanced)
-
-    enhanced_np = np.stack(enhanced_batch, axis=0)[:, None, :, :]
-    enhanced_np = torch.from_numpy(enhanced_np).float()
-    return enhanced_np
+    enhanced = clahe.apply(image)
+    enhanced = enhanced.astype('float32') / 127.5 - 1.0
+    return torch.from_numpy(enhanced).unsqueeze(0).unsqueeze(0)
 
 
 def save_epoch_visuals(x: torch.Tensor, fake: torch.Tensor, out_dir: Path, epoch: int) -> None:
@@ -64,8 +56,6 @@ def train(args: argparse.Namespace) -> None:
         net_d.train()
         running_g = 0.0
         running_d = 0.0
-        running_psnr = 0.0
-        running_ssim = 0.0
 
         prog = tqdm(dl, desc=f'Epoch {epoch}/{args.epochs}')
         for x, y in prog:
@@ -100,21 +90,16 @@ def train(args: argparse.Namespace) -> None:
 
             running_d += loss_d.item()
             running_g += g_losses['total'].item()
-
-            batch_psnr, batch_ssim = compute_psnr_ssim(
-                fake[0, 0].detach().cpu().numpy(),
-                y[0, 0].detach().cpu().numpy(),
-            )
-            running_psnr += batch_psnr
-            running_ssim += batch_ssim
-
             prog.set_postfix(loss_d=loss_d.item(), loss_g=g_losses['total'].item())
 
         # Save one visual sample per epoch for demo proof
         save_epoch_visuals(x, fake, Path(args.visual_dir), epoch)
 
-        psnr = running_psnr / len(dl)
-        ssim = running_ssim / len(dl)
+        # Quick epoch metrics on last batch sample
+        psnr, ssim = compute_psnr_ssim(
+            fake[0, 0].detach().cpu().numpy(),
+            y[0, 0].detach().cpu().numpy(),
+        )
 
         print(
             f'Epoch {epoch}: '

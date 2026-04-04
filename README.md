@@ -17,6 +17,9 @@ This project now includes a **research-inspired conditional GAN (cGAN/Pix2Pix-st
 - **Data augmentation:** random flip + mild rotations; CT intensity normalized to `[-1, 1]`.
 
 These changes are implemented in `gan_pipeline/` and are intended to be demonstrably stronger and more stable than a basic GAN baseline.
+# Lung CT Image Enhancement and Cancer Detection (Step 1)
+
+This is the initial setup for a Flask-based capstone project.
 
 ## Project Structure
 
@@ -24,65 +27,44 @@ These changes are implemented in `gan_pipeline/` and are intended to be demonstr
 .
 ├── app.py
 ├── requirements.txt
-├── gan_pipeline/
-│   ├── __init__.py
-│   ├── architectures.py
-│   ├── dataset.py
-│   ├── losses.py
-│   ├── metrics.py
-│   └── train.py
-├── utils/
-│   ├── preprocessing.py
-│   ├── enhancement.py
-│   ├── visualization.py
-│   └── prediction.py
 ├── templates/
-│   ├── index.html
-│   └── result.html
+├── static/
+│   ├── css/
+│   ├── js/
+│   ├── uploads/
+│   └── outputs/
+├── utils/
 ├── models/
-└── static/
+└── uploads/
 ```
 
-## Training the advanced GAN
+## Setup Instructions
 
-Prepare paired dataset:
+1. Create and activate a virtual environment:
+   - Linux/macOS:
+     ```bash
+     python -m venv .venv
+     source .venv/bin/activate
+     ```
+   - Windows (PowerShell):
+     ```powershell
+     python -m venv .venv
+     .venv\Scripts\Activate.ps1
+     ```
 
-```text
-your_dataset/
-  input/
-    img1.png
-    img2.png
-  target/
-    img1.png
-    img2.png
-```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Run training:
+3. Run the Flask app:
+   ```bash
+   python app.py
+   ```
 
-```bash
-python -m gan_pipeline.train \
-  --data-dir your_dataset \
-  --epochs 50 \
-  --batch-size 8 \
-  --image-size 128
-```
+4. Open in browser:
+   - http://127.0.0.1:5000/
 
-Artifacts:
-- Checkpoints: `checkpoints/advanced_gan_generator.pth`, `checkpoints/advanced_gan_discriminator.pth`
-- Epoch visuals: `training_visuals/epoch_XXXX_input.png` and `epoch_XXXX_generated.png`
+---
 
-## Flask demo app
-
-```bash
-python app.py
-```
-
-Open: `http://127.0.0.1:5000/`
-
-Pipeline in app: **Upload → Preprocess → Enhance → Visualize → Predict → Result**.
-
-## Viva Notes
-
-- The GAN training code is intentionally modular and explainable (`architectures`, `dataset`, `losses`, `metrics`, `train`).
-- The model includes research-aligned stability and quality tricks while remaining feasible on limited hardware.
-- You can later plug the trained `advanced_gan_generator.pth` into runtime inference for production-quality enhancement.
+> Disclaimer: This system assists medical professionals and does not replace diagnosis.
