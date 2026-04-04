@@ -1,5 +1,7 @@
-from flask import Flask, render_template
 import os
+import cv2   # ✅ ADD THIS
+import torch
+from flask import Flask, render_template
 from flask import Flask, render_template, request
 from werkzeug.utils import secure_filename
 
